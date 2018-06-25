@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">AccelerometerMinorProject</string>
+    <string name="forward">move forward</string>
+    <string name="backward">move backward</string>
+    <string name="stop">stop</string>
+    <string name="right">Turn Right</string>
+    <string name="left">Turn left</string>
+    <string name="x">X :</string>
+    <string name="y">Y :</string>
+    <string name="z">Z :</string>
 </resources>
