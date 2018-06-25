@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager SM;
     private Sensor mySensor;
 
-    // make bluetooth Adapter
+    // make bluetooth adapter
     BluetoothAdapter myBluetoothAdapter;
 
     // Create a BroadcastReceiver for ACTION_FOUND.
