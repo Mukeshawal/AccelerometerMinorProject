@@ -1,5 +1,6 @@
 package com.example.admin.accelerometerminorproject;
 
+import android.bluetooth.BluetoothDevice;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -8,18 +9,26 @@ import android.hardware.SensorManager;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 import com.example.admin.accelerometerminorproject.BluetoothConnection.BluetoothFuntions;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener{
+import java.util.ArrayList;
 
-    private static String TAG ="myLog";
+public class MainActivity extends AppCompatActivity implements SensorEventListener,BluetoothFuntions.NewDevice {
+
+    private static String TAG ="MYLOG";
     private TextView x_data,y_data,z_data,commandBot;
     private SensorManager SM;
     private Sensor mySensor;
+    public ListView LvNewDevices;
+    public DeviceAdapter mDeviceListAdapter;
+    public ArrayList<BluetoothDevice> mBtDeviceMain;
 
-    BluetoothFuntions bluetoothSetup = new BluetoothFuntions(this);
+    BluetoothFuntions bluetoothSetup = new BluetoothFuntions(this, this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -30,6 +39,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         //initialize bluetooth on/off switch
         Button BtSwitch =  findViewById(R.id.BtSwitch);
+        Button DiscoverBt = findViewById(R.id.DiscoverBt);
+        Button makeDiscoverable = findViewById(R.id.makeDiscoverable);
         SensorInitialize();
         SensorRegister();
 
@@ -38,6 +49,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         y_data = findViewById(R.id.y_data);
         z_data = findViewById(R.id.z_data);
         commandBot=findViewById(R.id.commandBot);
+        LvNewDevices=findViewById(R.id.LvNewDevices);
+        mBtDeviceMain = new ArrayList<>();
 
 
         //set on click listener on button
@@ -49,6 +62,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                bluetoothSetup.BtOnOff();
             }
         });
+        DiscoverBt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                bluetoothSetup.DiscoverDevices();
+            }
+        });
+        makeDiscoverable.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                bluetoothSetup.makeDiscoverable();
+            }
+        });
+
     }
 
     @Override
@@ -126,5 +152,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     {
         SM.unregisterListener(this);
         Log.i(TAG, "sensor unregistered");
+    }
+
+
+    @Override
+    public void onUpdateDevice(ArrayList<BluetoothDevice> mBtDevice) {
+        Log.i(TAG,"enterd to onUpdateDevice");
+        if(mBtDevice != null)
+        {
+            mBtDeviceMain = mBtDevice;
+            Log.i(TAG,"array adapter copied");
+        }
+        if(mBtDevice == null)
+        {
+            Log.i(TAG,"array adapter not received");
+        }
+        mDeviceListAdapter = new DeviceAdapter(this,  R.layout.device_adapter_view,mBtDeviceMain);
+        Log.i(TAG,"adapter set");
+        LvNewDevices.setAdapter(mDeviceListAdapter);
+        Log.i(TAG,"update complete");
+
+
     }
 }
