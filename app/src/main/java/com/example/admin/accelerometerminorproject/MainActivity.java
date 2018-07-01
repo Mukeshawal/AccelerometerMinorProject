@@ -4,45 +4,45 @@ import android.bluetooth.BluetoothDevice;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import com.example.admin.accelerometerminorproject.BluetoothConnection.BluetoothFuntions;
+import com.example.admin.accelerometerminorproject.SensorFunctions.SensorFunctions;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener,BluetoothFuntions.NewDevice {
+public class MainActivity extends AppCompatActivity implements BluetoothFuntions.BluetoothCallBack,
+        SensorFunctions.SensorCallBack {
 
     private static String TAG ="MYLOG";
+    float xMain,yMain,zMain;
+    String commandMain;
+
     private TextView x_data,y_data,z_data,commandBot;
-    private SensorManager SM;
-    private Sensor mySensor;
     public ListView LvNewDevices;
+
     public DeviceAdapter mDeviceListAdapter;
     public ArrayList<BluetoothDevice> mBtDeviceMain;
 
+    //create objects of class SensorFuntions and BluetoothFunctions
+    SensorFunctions sensorFunctions = new SensorFunctions(this, this);
     BluetoothFuntions bluetoothSetup = new BluetoothFuntions(this, this);
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Log.i(TAG,"on create");
 
-        //initialize bluetooth on/off switch
+        //initialize bluetooth function switches
         Button BtSwitch =  findViewById(R.id.BtSwitch);
         Button DiscoverBt = findViewById(R.id.DiscoverBt);
         Button makeDiscoverable = findViewById(R.id.makeDiscoverable);
-        SensorInitialize();
-        SensorRegister();
+
+        //Initialize sensor
+        sensorFunctions.SensorInitialize();
 
         //assign text view
         x_data = findViewById(R.id.x_data);
@@ -50,15 +50,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         z_data = findViewById(R.id.z_data);
         commandBot=findViewById(R.id.commandBot);
         LvNewDevices=findViewById(R.id.LvNewDevices);
+
+        //assign ArrayList
         mBtDeviceMain = new ArrayList<>();
 
-
         //set on click listener on button
-        BtSwitch.setOnClickListener(new View.OnClickListener()
-        {
+        BtSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
+            public void onClick(View v) {
                bluetoothSetup.BtOnOff();
             }
         });
@@ -80,86 +79,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onPause() {
         super.onPause();
-        SensorUnRegister();
+        sensorFunctions.SensorUnRegister();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        SensorRegister();
+        sensorFunctions.SensorRegister();
     }
 
+
+    //override method of interface BluetoothCallBack to update new discovered devices
     @Override
-    public void onSensorChanged(SensorEvent event)
-     {
-
-        x_data.setText(getString(R.string.x)+ event.values[0]);
-        y_data.setText(getString(R.string.y)+ event.values[1]);
-        z_data.setText(getString(R.string.z)+ event.values[2]);
-
-        if (event.values[2]>0) //screen facing upwards
-        {
-            if((event.values[0]<2)&&(event.values[0]>-2)) //stop, forward and backwards
-            {
-                if(event.values[1]<-3)
-                {commandBot.setText(R.string.forward);}
-                else if (event.values[1]>3)
-                {commandBot.setText(R.string.backward);}
-                else
-                {commandBot.setText(R.string.stop);}
-            }
-            else if ((event.values[1]<2)&&(event.values[1]>-2))
-            {
-                if(event.values[0]<-3)
-                {commandBot.setText(R.string.right);}
-                else if (event.values[0]>3)
-                {commandBot.setText(R.string.left);}
-                else
-                {commandBot.setText(R.string.stop);}
-            }
-
-        }
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-    }
-
-    public void SensorInitialize()
-    {
-
-        //create sensor manager
-        SM = (SensorManager)getSystemService(SENSOR_SERVICE);
-
-        //accelerometer sensor
-        if (SM.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null)
-        {
-            Log.i(TAG, "Accelerometer Sensor detected");
-            mySensor = SM.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        }
-        else
-        {
-            Log.i(TAG, "Accelerometer Sensor not detected");
-        }
-    }
-    public void SensorRegister()
-    {
-        SM.registerListener(this, mySensor,SM.SENSOR_DELAY_NORMAL);
-        Log.i(TAG, "sensor registered");
-    }
-    public void SensorUnRegister()
-    {
-        SM.unregisterListener(this);
-        Log.i(TAG, "sensor unregistered");
-    }
-
-
-    @Override
-    public void onUpdateDevice(ArrayList<BluetoothDevice> mBtDevice) {
+    public void updateDeviceList(ArrayList<BluetoothDevice> mBtDevice) {
         Log.i(TAG,"enterd to onUpdateDevice");
         if(mBtDevice != null)
-        {
+        {   //copy received mBtDevice ArrayList<> type to mBtDeviceMain
             mBtDeviceMain = mBtDevice;
             Log.i(TAG,"array adapter copied");
         }
@@ -167,11 +102,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         {
             Log.i(TAG,"array adapter not received");
         }
+        //Pass data to adapter with context,Layout,ArrayList<BluetoothDevice>
         mDeviceListAdapter = new DeviceAdapter(this,  R.layout.device_adapter_view,mBtDeviceMain);
         Log.i(TAG,"adapter set");
+
+        //Set Adapter
         LvNewDevices.setAdapter(mDeviceListAdapter);
         Log.i(TAG,"update complete");
+    }
 
+    //override method of interface SensorCallBack to update new Sensor readings
+    @Override
+    public void updateSensorData(float x, float y, float z, String command) {
+        //copy received sensor readings to float type variables and orientation in string
+        xMain = x;        yMain = y;        zMain = z;        commandMain = command;
 
+        //update textFields on screen
+        x_data.setText(getString(R.string.x)+ xMain);
+        y_data.setText(getString(R.string.y)+ yMain);
+        z_data.setText(getString(R.string.z)+ zMain);
+        commandBot.setText(commandMain);
     }
 }

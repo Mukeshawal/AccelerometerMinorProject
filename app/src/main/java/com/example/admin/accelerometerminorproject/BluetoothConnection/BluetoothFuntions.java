@@ -1,48 +1,70 @@
 package com.example.admin.accelerometerminorproject.BluetoothConnection;
 
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
-import android.widget.ListAdapter;
-import android.widget.ListView;
 import android.widget.Toast;
-import android.widget.ArrayAdapter;
-
-import com.example.admin.accelerometerminorproject.DeviceAdapter;
-import com.example.admin.accelerometerminorproject.MainActivity;
-import com.example.admin.accelerometerminorproject.R;
-
 import java.util.ArrayList;
 
-import static android.support.v4.content.ContextCompat.startActivity;
-
-
+/**********************************************************************************************
+ * ********************************************************************************************
+ * ******************this class is used for all Bluetooth related functions********************
+ * *******************************************************************************************
+ * *******************************************************************************************/
 public class BluetoothFuntions {
-
 
     private Context context;
     private static String TAG ="MYLOG";
-    BluetoothAdapter myBluetoothAdapter =  BluetoothAdapter.getDefaultAdapter();
-    public ArrayList<BluetoothDevice> mBtDevices = new ArrayList<>();
-    //public DeviceAdapter mDeviceListAdapter;
-    NewDevice mNewDevice = null;
 
-    public BluetoothFuntions( Context context,NewDevice newDevice)
+    //define Bluetooth adapter
+    BluetoothAdapter myBluetoothAdapter =  BluetoothAdapter.getDefaultAdapter();
+
+    //ArrayList of Bluetooth Device to store newly discovered devices
+    public ArrayList<BluetoothDevice> mBtDevices = new ArrayList<>();
+
+    //interface type variable to callback a function in MainActivity
+    BluetoothCallBack mBluetoothCallBack = null;
+
+    //this is a constructor that takes context of activity and interface type variable for callback
+    public BluetoothFuntions( Context context,BluetoothCallBack bluetoothCallBack)
     {
         this.context = context;
-        this.mNewDevice = newDevice;
-
+        this.mBluetoothCallBack = bluetoothCallBack;
     }
 
+    // Call this method to enable and disable Bluetooth
+    public void BtOnOff ()
+    {
+        if (myBluetoothAdapter == null) //if bluetooth is not available in that device
+        {
+            Log.i(TAG, "bluetooth not available");
+            Toast.makeText(this.context,"Bluetooth not available", Toast.LENGTH_LONG).show();
+        }
+        if (!myBluetoothAdapter.isEnabled()) // if bluetooth is not enabled
+        {
+            Intent enableBt = new Intent(myBluetoothAdapter.ACTION_REQUEST_ENABLE); //request to enable bluetooth
+            context.startActivity(enableBt);
+            Toast.makeText(this.context,"Bluetooth enabled", Toast.LENGTH_LONG).show();
 
+            // create intent filter to catch state change in bluetooth
+           IntentFilter BtIntent =  new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
+            context.registerReceiver(myBroadcastReceiver, BtIntent);
+        }
+        if (myBluetoothAdapter.isEnabled())
+        {
+            myBluetoothAdapter.disable();
+            Toast.makeText(this.context,"Bluetooth disabled", Toast.LENGTH_LONG).show();
 
+            IntentFilter BtIntent =  new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
+            context.registerReceiver(myBroadcastReceiver, BtIntent);
+        }
+    }
 
-    //create a Broadcast for action state changed
+    //definition of myBroadcastReceiver with ACTION_STATE_CHANGED used for BtOnOff
     private final BroadcastReceiver myBroadcastReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
@@ -74,7 +96,20 @@ public class BluetoothFuntions {
         }
     };
 
-    // Create a BroadcastReceiver for ACTION_SCAN_MODE_CHANGED.
+
+    // call this method to make your device discoverable for 45 secs
+    public void makeDiscoverable()
+    {
+        Log.i(TAG, "making device discoverable for 45 sec");
+        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 45);
+        context.startActivity(discoverableIntent);
+
+        IntentFilter makeDis = new IntentFilter(myBluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
+        context.registerReceiver(myBroadcastReceiver2,makeDis);
+    }
+
+    //definition of myBroadcastReceiver2 with ACTION_SCAN_MODE_CHANGED used for makeDiscoverable
     private final BroadcastReceiver myBroadcastReceiver2 = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
@@ -111,54 +146,8 @@ public class BluetoothFuntions {
         }
     };
 
-    private BroadcastReceiver myBroadcastReceiver3 = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String Action = intent.getAction();
-            Log.i(TAG,"action_found");
-            if(Action.equals(BluetoothDevice.ACTION_FOUND))
-            {
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                mBtDevices.add(device);
 
-                Log.i(TAG,"on receive:"+ device.getName() + device.getAddress());
-
-               if(mNewDevice != null)
-               {
-                    mNewDevice.onUpdateDevice(mBtDevices);
-               }
-
-            }
-        }
-    };
-
-    public void BtOnOff ()
-    {
-        if (myBluetoothAdapter == null) //if bluetooth is not available in that device
-        {
-            Log.i(TAG, "bluetooth not available");
-            Toast.makeText(this.context,"Bluetooth not available", Toast.LENGTH_LONG).show();
-        }
-        if (!myBluetoothAdapter.isEnabled()) // if bluetooth is not enabled
-        {
-            Intent enableBt = new Intent(myBluetoothAdapter.ACTION_REQUEST_ENABLE); //request to enable bluetooth
-            context.startActivity(enableBt);
-            Toast.makeText(this.context,"Bluetooth enabled", Toast.LENGTH_LONG).show();
-
-            // create intent filter to catch state change in bluetooth
-           IntentFilter BtIntent =  new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
-            context.registerReceiver(myBroadcastReceiver, BtIntent);
-        }
-        if (myBluetoothAdapter.isEnabled())
-        {
-            myBluetoothAdapter.disable();
-            Toast.makeText(this.context,"Bluetooth disabled", Toast.LENGTH_LONG).show();
-
-            IntentFilter BtIntent =  new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
-            context.registerReceiver(myBroadcastReceiver, BtIntent);
-        }
-    }
-
+    //Call this method to search for other available Bluetooth device in Proximity
     public void DiscoverDevices()
     {
         if(myBluetoothAdapter.isDiscovering())
@@ -181,25 +170,37 @@ public class BluetoothFuntions {
             context.registerReceiver(myBroadcastReceiver3,DisDevIntent);
             Log.i(TAG, "Discovering devices");
         }
-
-
-
     }
 
-    public void makeDiscoverable()
-    {
-        Log.i(TAG, "making device discoverable for 45 sec");
-        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 45);
-        context.startActivity(discoverableIntent);
+    //definition of myBroadcastReceiver3 with ACTION_FOUND used for DiscoverDevices
+    private BroadcastReceiver myBroadcastReceiver3 = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String Action = intent.getAction();
+            Log.i(TAG,"action_found");
+            if(Action.equals(BluetoothDevice.ACTION_FOUND))
+            {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
-        IntentFilter makeDis = new IntentFilter(myBluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
-        context.registerReceiver(myBroadcastReceiver2,makeDis);
-    }
+                //this adds available devices in ArrayList<BluetoothDevice> type variable mBtDevices
+                mBtDevices.add(device);
 
-    public interface NewDevice
+                //this prints available devices in Logcat
+                Log.i(TAG,"on receive:"+ device.getName() + device.getAddress());
+                if(mBluetoothCallBack != null)
+                {
+                    //to update Device list from MainActivity using interface "BluetoothCallBack" method updateDeviceList
+                    mBluetoothCallBack.updateDeviceList(mBtDevices);
+                }
+            }
+        }
+    };
+
+    //Interface definition to execute method in MainActivity
+    public interface BluetoothCallBack
     {
-        public void onUpdateDevice(ArrayList<BluetoothDevice> mBtDevice);
+        //method to pass ArrayList<BluetoothDevice> type variable to other Activity
+        public void updateDeviceList(ArrayList<BluetoothDevice> mBtDevice);
     }
 }
 
