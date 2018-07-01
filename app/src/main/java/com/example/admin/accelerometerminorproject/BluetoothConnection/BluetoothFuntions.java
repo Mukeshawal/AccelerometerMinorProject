@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.util.Log;
 import android.widget.Toast;
 import java.util.ArrayList;
+import java.util.Set;
 
 /**********************************************************************************************
  * ********************************************************************************************
@@ -25,6 +26,7 @@ public class BluetoothFuntions {
 
     //ArrayList of Bluetooth Device to store newly discovered devices
     public ArrayList<BluetoothDevice> mBtDevices = new ArrayList<>();
+    public ArrayList<BluetoothDevice> mPairedBtDevices = new ArrayList<>();
 
     //interface type variable to callback a function in MainActivity
     BluetoothCallBack mBluetoothCallBack = null;
@@ -48,19 +50,25 @@ public class BluetoothFuntions {
         {
             Intent enableBt = new Intent(myBluetoothAdapter.ACTION_REQUEST_ENABLE); //request to enable bluetooth
             context.startActivity(enableBt);
+            while(!myBluetoothAdapter.isEnabled())
+            {}
             Toast.makeText(this.context,"Bluetooth enabled", Toast.LENGTH_LONG).show();
 
             // create intent filter to catch state change in bluetooth
            IntentFilter BtIntent =  new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
             context.registerReceiver(myBroadcastReceiver, BtIntent);
+            getPairedDevice();
+
         }
-        if (myBluetoothAdapter.isEnabled())
+        //if (myBluetoothAdapter.isEnabled())
+        else
         {
             myBluetoothAdapter.disable();
             Toast.makeText(this.context,"Bluetooth disabled", Toast.LENGTH_LONG).show();
 
             IntentFilter BtIntent =  new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
             context.registerReceiver(myBroadcastReceiver, BtIntent);
+            mBluetoothCallBack.clearList();
         }
     }
 
@@ -196,11 +204,26 @@ public class BluetoothFuntions {
         }
     };
 
+    public void getPairedDevice()
+    {
+        Set<BluetoothDevice> pairedDevices = myBluetoothAdapter.getBondedDevices();
+        if (pairedDevices.size() > 0) {
+            // There are paired devices. Get the name and address of each paired device.
+            for (BluetoothDevice device : pairedDevices) {
+                mPairedBtDevices.add(device);
+                mBluetoothCallBack.pairedDeviceList(mPairedBtDevices);
+            }
+        }
+    }
+
     //Interface definition to execute method in MainActivity
     public interface BluetoothCallBack
     {
         //method to pass ArrayList<BluetoothDevice> type variable to other Activity
         public void updateDeviceList(ArrayList<BluetoothDevice> mBtDevice);
+        public void pairedDeviceList(ArrayList<BluetoothDevice> mPairedBtDevice);
+        public void clearList();
+
     }
 }
 
