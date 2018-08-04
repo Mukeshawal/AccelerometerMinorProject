@@ -1,34 +1,40 @@
 package com.example.admin.accelerometerminorproject;
 
 import android.bluetooth.BluetoothDevice;
+import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.example.admin.accelerometerminorproject.BluetoothConnection.BluetoothFuntions;
 import com.example.admin.accelerometerminorproject.SensorFunctions.SensorFunctions;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements BluetoothFuntions.BluetoothCallBack,
         SensorFunctions.SensorCallBack {
 
     private static String TAG ="MYLOG";
     float xMain,yMain,zMain;
-    String commandMain;
+    String commandMain,Direction = "stop" , toSend = "s";
 
     private TextView x_data,y_data,z_data,commandBot;
     public ListView LvNewDevices;
     public ListView LvPairedDevices;
 
     public DeviceAdapter mDeviceListAdapter;
-    public DeviceAdapter mPairedDeviceListAdapter;
     public ArrayList<BluetoothDevice> mBtDeviceMain;
-    public ArrayList<BluetoothDevice> mPairedBtDeviceMain;
 
     //create objects of class SensorFuntions and BluetoothFunctions
     SensorFunctions sensorFunctions = new SensorFunctions(this, this);
@@ -42,8 +48,6 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
 
         //initialize bluetooth function switches
         Button BtSwitch =  findViewById(R.id.BtSwitch);
-        Button DiscoverBt = findViewById(R.id.DiscoverBt);
-        Button makeDiscoverable = findViewById(R.id.makeDiscoverable);
 
         //Initialize sensor
         sensorFunctions.SensorInitialize();
@@ -54,10 +58,11 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
         z_data = findViewById(R.id.z_data);
         commandBot=findViewById(R.id.commandBot);
         LvNewDevices=findViewById(R.id.LvNewDevices);
-        LvPairedDevices = findViewById(R.id.LvPairedDevices);
 
         //assign ArrayList
         mBtDeviceMain = new ArrayList<>();
+
+        bluetoothSetup.DiscoverDevices();
 
         //set on click listener on button
         BtSwitch.setOnClickListener(new View.OnClickListener() {
@@ -66,18 +71,15 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
                bluetoothSetup.BtOnOff();
             }
         });
-        DiscoverBt.setOnClickListener(new View.OnClickListener() {
+
+        LvNewDevices.setOnItemClickListener(new OnItemClickListener() {
             @Override
-            public void onClick(View v) {
-                if(mDeviceListAdapter != null)
-                {mDeviceListAdapter.clear();}
-                bluetoothSetup.DiscoverDevices();
-            }
-        });
-        makeDiscoverable.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                bluetoothSetup.makeDiscoverable();
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                bluetoothSetup.cancelDiscovery();
+                bluetoothSetup.pairDevice(mBtDeviceMain.get(position));
+                Log.i(TAG, "you clicked on a device");
+                bluetoothSetup.getBtDeviceToBeConnected(mBtDeviceMain.get(position));
+                bluetoothSetup.startBtConnection();
             }
         });
 
@@ -86,6 +88,7 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
     @Override
     protected void onPause() {
         super.onPause();
+        Log.i(TAG,"on pause");
         sensorFunctions.SensorUnRegister();
     }
 
@@ -95,11 +98,19 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
         sensorFunctions.SensorRegister();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        try
+        {bluetoothSetup.unRegisterBroadcastReceiver();}
+        catch (IllegalArgumentException e)
+        {}
+    }
 
     //override method of interface BluetoothCallBack to update new discovered devices
     @Override
-    public void updateDeviceList(ArrayList<BluetoothDevice> mBtDevice) {
-        Log.i(TAG,"enterd to onUpdateDevice");
+    public void updateNewDeviceList(ArrayList<BluetoothDevice> mBtDevice) {
+        Log.i(TAG,"entered to onUpdateNewDevice");
         if((mBtDevice != null))
         {   //copy received mBtDevice ArrayList<> type to mBtDeviceMain
             mBtDeviceMain = mBtDevice;
@@ -118,32 +129,19 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
         Log.i(TAG,"update complete");
     }
 
-    @Override
-    public void pairedDeviceList(ArrayList<BluetoothDevice> mPairedBtDevice) {
-        if((mPairedBtDevice != null))
-        {   //copy received mBtDevice ArrayList<> type to mBtDeviceMain
-            mPairedBtDeviceMain = mPairedBtDevice;
-            Log.i(TAG,"paired array adapter copied");
-        }
-        if(mPairedBtDevice == null)
-        {
-            Log.i(TAG,"paired array adapter not received");
-        }
-        //Pass data to adapter with context,Layout,ArrayList<BluetoothDevice>
-        mPairedDeviceListAdapter = new DeviceAdapter(this,  R.layout.device_adapter_view,mPairedBtDeviceMain);
-        Log.i(TAG,"paired adapter set");
-
-        //Set Adapter
-        LvPairedDevices.setAdapter(mPairedDeviceListAdapter);
-        Log.i(TAG,"paired update complete");
-    }
-
+    //to clear device list on screen
     @Override
     public void clearList() {
         if(mDeviceListAdapter != null)
         {mDeviceListAdapter.clear();}
-        if(mPairedDeviceListAdapter != null)
-        {mPairedDeviceListAdapter.clear();}
+    }
+
+    @Override
+    public void updateReceivedTextList(String string) {
+            Log.i(TAG,"updating received message");
+            String message = string;
+            Toast.makeText(this,message,Toast.LENGTH_SHORT).show();
+            Log.i(TAG,"updated received message");
     }
 
     //override method of interface SensorCallBack to update new Sensor readings
@@ -157,5 +155,32 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
         y_data.setText(getString(R.string.y)+ yMain);
         z_data.setText(getString(R.string.z)+ zMain);
         commandBot.setText(commandMain);
+        if (!Direction.equals(commandMain)) {
+            Direction = commandMain;
+            Log.i(TAG,"direction changed");
+            if (commandMain.equals("move forward")) {
+                toSend = "f";
+                Log.i(TAG, "writing f in toSend");
+            }
+            if (commandMain.equals("Turn Right")) {
+                toSend = "r";
+                Log.i(TAG, "writing r in toSend");
+            }
+            if (commandMain.equals("Turn left")) {
+                toSend = "l";
+                Log.i(TAG, "writing l in toSend");
+            }
+            if (commandMain.equals("move backward")) {
+                toSend = "b";
+                Log.i(TAG, "writing b in toSend");
+            }
+            if (commandMain.equals("stop")) {
+                toSend = "s";
+                Log.i(TAG, "writing s in toSend");
+            }
+            byte[] bytes = toSend.getBytes();
+            Log.i(TAG,"sending direction code to bluetoothFuntions");
+            bluetoothSetup.write(bytes);
+        }
     }
 }
