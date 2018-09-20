@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
 
+import static android.support.v4.app.ActivityCompat.startActivityForResult;
+
 /**********************************************************************************************
  * ********************************************************************************************
  * ******************this class is used for all Bluetooth related functions********************
@@ -41,7 +43,7 @@ public class BluetoothFuntions {
     public BluetoothDevice toBePairedDevice;    //used in method "pairDevice"
     private BluetoothDevice btDeviceToBeConnected;  //used in method "getBtDeviceToBeConnected"
 
-    private AcceptThread mInsecureAcceptThread;
+    //private AcceptThread mInsecureAcceptThread;
 
     ProgressDialog mProgressDialog;     //used in method "startClient"
 
@@ -68,7 +70,28 @@ public class BluetoothFuntions {
         this.mBluetoothCallBack = bluetoothCallBack;
         //define Bluetooth adapter
         myBluetoothAdapter =  BluetoothAdapter.getDefaultAdapter();
-        start();
+        //start();
+    }
+
+    /**
+     * start the chat service. specifically start AcceptThread to begin a
+     * session to listening (server) mode. called by the Activity OnResume()
+     */
+    /*public synchronized void start()
+    {
+        Log.i(TAG,"start");
+
+        //cancel any Thread attempting to make connection
+        if(mConnectThread != null)
+        {
+            mConnectThread.cancel();
+            mConnectThread = null;
+        }
+        if(mInsecureAcceptThread == null)
+        {
+            mInsecureAcceptThread = new AcceptThread();
+            mInsecureAcceptThread.start();
+        }
     }
 
     // this thread runs while listening for incoming connections
@@ -131,7 +154,7 @@ public class BluetoothFuntions {
                 Log.i(TAG," cancel: close of AcceptTread ServerSocket Failed "+ e.getMessage());
             }
         }
-    }
+    }*/
 
     private class ConnectThread extends Thread
     {
@@ -146,6 +169,7 @@ public class BluetoothFuntions {
 
         public void run()
         {
+            final String deviceName1 = mDevice.getName();
             BluetoothSocket tmp = null;
             Log.i(TAG,"RUN mconnectThread");
 
@@ -171,21 +195,40 @@ public class BluetoothFuntions {
             catch (IOException e)
             {
                 //close the socket
-                try{
+                try
+                {
                     msocket.close();
                     Log.i(TAG,"connect thread run: closed socket");
-                }catch (IOException el){
+                }
+                catch (IOException el)
+                {
                     Log.i(TAG,"connectThread: run : unable to close connection in socket:"+ el.getMessage());
                 }
                 Log.i(TAG,"run: connectThread: could not connect to UUID:"+ MY_UUID_INSECURE);
-            }
 
+                //dismiss progress dialog
+                try{
+                    mProgressDialog.dismiss();}
+                catch (NullPointerException elk){
+                    e.printStackTrace();}
+
+                //toast to display unable to connect
+                Handler mHandler = new Handler(Looper.getMainLooper());
+                Runnable mRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(context,"unable to connect to "+deviceName1 +"!!",Toast.LENGTH_SHORT).show();
+                    }
+                };
+                mHandler.post(mRunnable);
+                cancel();
+            }
             connected(msocket,mDevice);
 
         }
         public void cancel()
         {
-            Log.i(TAG,"connect tread Cancel: closing client Socket");
+            Log.i(TAG,"connect thread Cancel: closing client Socket");
             try
             {
                 msocket.close();
@@ -196,26 +239,7 @@ public class BluetoothFuntions {
             }
         }
     }
-    /**
-     * start the chat service. specifically start AcceptThread to begin a
-     * session to listening (server) mode. called by the Activity OnResume()
-     */
-    public synchronized void start()
-    {
-        Log.i(TAG,"start");
 
-        //cancel any Thread attempting to make connection
-        if(mConnectThread != null)
-        {
-            mConnectThread.cancel();
-            mConnectThread = null;
-        }
-        if(mInsecureAcceptThread == null)
-        {
-            mInsecureAcceptThread = new AcceptThread();
-            mInsecureAcceptThread.start();
-        }
-    }
     /**
      * Accept thread starts and sits waiting for a connection.
      * then ConnectThread starts and attempts to make a connection with the other
@@ -277,7 +301,6 @@ public class BluetoothFuntions {
                 @Override
                 public void run() {
                     Toast.makeText(context,"connected to "+deviceName +"!!",Toast.LENGTH_SHORT).show();
-                    mBluetoothCallBack.updateReceivedTextList(deviceName);
                 }
             };
             mHandler.post(mRunnable);
@@ -363,11 +386,8 @@ public class BluetoothFuntions {
         {Log.i(TAG,"bluetoothFunctions - write:device not connected yet");}
     }
 
-
-
-    // Call this method to enable and disable Bluetooth
-    public void BtOnOff ()
-    {
+    //call this method to get bluetooth status
+    public boolean GetBtStatus(){
         if (myBluetoothAdapter == null) //if bluetooth is not available in that device
         {
             Log.i(TAG, "bluetooth not available");
@@ -375,33 +395,60 @@ public class BluetoothFuntions {
         }
         if (!myBluetoothAdapter.isEnabled()) // if bluetooth is not enabled
         {
-            Intent enableBt = new Intent(myBluetoothAdapter.ACTION_REQUEST_ENABLE); //request to enable bluetooth
-            context.startActivity(enableBt);
-            while(!myBluetoothAdapter.isEnabled())
-            {}
-            Toast.makeText(this.context,"Bluetooth enabled", Toast.LENGTH_SHORT).show();
-            DiscoverDevices();
-
-            // create intent filter to catch state change in bluetooth
-           IntentFilter BtIntent =  new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
-            context.registerReceiver(myBroadcastReceiver, BtIntent);
-
-
+            return(false);
         }
-        //if (myBluetoothAdapter.isEnabled())
         else
         {
-            myBluetoothAdapter.disable();
-            Toast.makeText(this.context,"Bluetooth disabled", Toast.LENGTH_LONG).show();
-
-            IntentFilter BtIntent =  new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
-            context.registerReceiver(myBroadcastReceiver, BtIntent);
-            clearArrayList();
-            Log.i(TAG,"array list cleared");
-            mBluetoothCallBack.clearList();
-            Log.i(TAG,"device adapter cleared");
+            return(true);
         }
     }
+    // Call this method to enable Bluetooth
+    public void BtOn()
+    {
+        if (myBluetoothAdapter == null) //if bluetooth is not available in that device
+        {
+            Log.i(TAG, "bluetooth not available");
+            Toast.makeText(this.context,"Bluetooth not available", Toast.LENGTH_LONG).show();
+        }
+        if (myBluetoothAdapter !=null)
+        {
+            if (!myBluetoothAdapter.isEnabled()) // if bluetooth is not enabled
+            {
+                Intent enableBt = new Intent(myBluetoothAdapter.ACTION_REQUEST_ENABLE); //request to enable bluetooth
+                context.startActivity(enableBt);
+
+                while(!myBluetoothAdapter.isEnabled())
+                {}
+                    Log.i(TAG,"bluetooth enabled");
+                    Toast.makeText(this.context, "Bluetooth enabled", Toast.LENGTH_SHORT).show();
+
+                    // create intent filter to catch state change in bluetooth
+                    IntentFilter BtIntent = new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
+                    context.registerReceiver(myBroadcastReceiver, BtIntent);
+            }
+        }
+    }
+
+    //call this method to disable bluetooth
+    public void Btoff()
+    {
+        if (myBluetoothAdapter != null)
+        {
+            if (myBluetoothAdapter.isEnabled())
+            {
+                myBluetoothAdapter.disable();
+                Toast.makeText(this.context, "Bluetooth disabled", Toast.LENGTH_LONG).show();
+
+                IntentFilter BtIntent = new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
+                context.registerReceiver(myBroadcastReceiver, BtIntent);
+                clearArrayList();
+                Log.i(TAG, "array list cleared");
+                mBluetoothCallBack.clearList();
+                Log.i(TAG, "device adapter cleared");
+            }
+        }
+    }
+
 
     //definition of myBroadcastReceiver with ACTION_STATE_CHANGED used for BtOnOff
     private final BroadcastReceiver myBroadcastReceiver = new BroadcastReceiver() {
@@ -548,7 +595,6 @@ public class BluetoothFuntions {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             Log.i(TAG,"trying to pair with  "+devicename);
-            Toast.makeText(this.context,"trying to Pair with"+devicename,Toast.LENGTH_LONG).show();
             toBePairedDevice.createBond();
         }
         else
@@ -584,6 +630,7 @@ public class BluetoothFuntions {
         }
     };
 
+
     //to get list of paired devices
     public void getPairedDevice()
     {
@@ -608,7 +655,6 @@ public class BluetoothFuntions {
     {
         myBluetoothAdapter.cancelDiscovery();
         Log.i(TAG,"discovery canceled");
-        Toast.makeText(this.context,"discovery cancelled", Toast.LENGTH_SHORT).show();
     }
 
     //to unregister all broadcast receiver
@@ -623,6 +669,7 @@ public class BluetoothFuntions {
     //to clear ArrayLIst
     public void clearArrayList()
     {
+        Log.i(TAG,"BluetoothFunction:clearArraylist");
         if (mBtDevices !=null)
         {mBtDevices.clear();}
         if (mPairedBtDevices !=null)
@@ -653,7 +700,6 @@ public class BluetoothFuntions {
         public void updateNewDeviceList(ArrayList<BluetoothDevice> mBtDevice);
         public void clearList();
         public void updateReceivedTextList(String string);
-
     }
 
 }

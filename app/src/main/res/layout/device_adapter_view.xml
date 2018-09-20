@@ -9,11 +9,13 @@
         android:id="@+id/tvDeviceName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TextView" />
+        android:text="TextView"
+        android:textColor="@android:color/white" />
 
     <TextView
         android:id="@+id/tvDeviceAddress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TextView" />
+        android:text="TextView"
+        android:textColor="@android:color/background_light" />
 </LinearLayout>

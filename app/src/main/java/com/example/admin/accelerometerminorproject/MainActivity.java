@@ -5,12 +5,15 @@ import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,11 +30,13 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
 
     private static String TAG ="MYLOG";
     float xMain,yMain,zMain;
+    boolean btStatus;
     String commandMain,Direction = "stop" , toSend = "s";
 
     private TextView x_data,y_data,z_data,commandBot;
     public ListView LvNewDevices;
     public ListView LvPairedDevices;
+    public Switch BtSwitch;
 
     public DeviceAdapter mDeviceListAdapter;
     public ArrayList<BluetoothDevice> mBtDeviceMain;
@@ -47,7 +52,7 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
         Log.i(TAG,"on create");
 
         //initialize bluetooth function switches
-        Button BtSwitch =  findViewById(R.id.BtSwitch);
+        BtSwitch =  findViewById(R.id.BtSwitch);
 
         //Initialize sensor
         sensorFunctions.SensorInitialize();
@@ -62,15 +67,25 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
         //assign ArrayList
         mBtDeviceMain = new ArrayList<>();
 
-        bluetoothSetup.DiscoverDevices();
+        //on change in state of bluetooth switch
+       BtSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+           @Override
+           public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+               Log.i(TAG,"checked changed listener triggered");
+               if (isChecked)
+                   {
+                       bluetoothSetup.BtOn();
+                       clearList();
+                       bluetoothSetup.DiscoverDevices();
+                   }
+               else
+                   {
+                       bluetoothSetup.Btoff();
+                       clearList();
+                   }
 
-        //set on click listener on button
-        BtSwitch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-               bluetoothSetup.BtOnOff();
-            }
-        });
+           }
+       });
 
         LvNewDevices.setOnItemClickListener(new OnItemClickListener() {
             @Override
@@ -82,7 +97,6 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
                 bluetoothSetup.startBtConnection();
             }
         });
-
     }
 
     @Override
@@ -95,7 +109,10 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
     @Override
     protected void onResume() {
         super.onResume();
+        Log.i(TAG,"on resume");
         sensorFunctions.SensorRegister();
+        updateSwitchStatus();
+        Log.i(TAG,"switch status update OnResume");
     }
 
     @Override
@@ -133,7 +150,9 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
     @Override
     public void clearList() {
         if(mDeviceListAdapter != null)
-        {mDeviceListAdapter.clear();}
+        {mDeviceListAdapter.clear();
+        Log.i(TAG,"list cleared!!");
+        }
     }
 
     @Override
@@ -158,19 +177,19 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
         if (!Direction.equals(commandMain)) {
             Direction = commandMain;
             Log.i(TAG,"direction changed");
-            if (commandMain.equals("move forward")) {
+            if (commandMain.equals("Moving forward")) {
                 toSend = "f";
                 Log.i(TAG, "writing f in toSend");
             }
-            if (commandMain.equals("Turn Right")) {
+            if (commandMain.equals("Turning Right")) {
                 toSend = "r";
                 Log.i(TAG, "writing r in toSend");
             }
-            if (commandMain.equals("Turn left")) {
+            if (commandMain.equals("Turning left")) {
                 toSend = "l";
                 Log.i(TAG, "writing l in toSend");
             }
-            if (commandMain.equals("move backward")) {
+            if (commandMain.equals("Moving backward")) {
                 toSend = "b";
                 Log.i(TAG, "writing b in toSend");
             }
@@ -183,4 +202,19 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
             bluetoothSetup.write(bytes);
         }
     }
+
+   public void updateSwitchStatus()
+   {
+       //to set the initial status of bluetooth switch
+       btStatus = bluetoothSetup.GetBtStatus();
+       if (btStatus == true)
+       {
+           BtSwitch.setChecked(true);
+       }
+       else
+       {
+           BtSwitch.setChecked(false);
+       }
+   }
+
 }

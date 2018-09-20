@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/ic_launcher_background"
     tools:context=".MainActivity">
 
     <TextView
@@ -12,70 +13,106 @@
         android:layout_height="30dp"
         android:text="x"
         android:textAlignment="center"
-        android:textSize="20sp" />
+        android:textColor="@android:color/white"
+        android:textSize="20sp"
+        android:textStyle="italic" />
 
     <TextView
         android:id="@+id/y_data"
         android:layout_width="match_parent"
         android:layout_height="30dp"
+        android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/x_data"
         android:text="y"
         android:textAlignment="center"
+        android:textColor="@android:color/white"
         android:textSize="20sp"
-        android:layout_alignParentLeft="true" />
+        android:textStyle="italic" />
 
     <TextView
         android:id="@+id/z_data"
         android:layout_width="match_parent"
         android:layout_height="30dp"
+        android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/y_data"
         android:text="z"
         android:textAlignment="center"
+        android:textColor="@android:color/white"
         android:textSize="20sp"
-        android:layout_alignParentLeft="true" />
+        android:textStyle="italic" />
 
     <TextView
         android:id="@+id/commandBot"
         android:layout_width="match_parent"
         android:layout_height="30dp"
+        android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/z_data"
         android:text="commandBot"
         android:textAlignment="center"
+        android:textColor="@android:color/white"
         android:textSize="20sp"
+        android:textStyle="italic"
+        />
+    <View
+        android:id="@+id/line1"
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/commandBot"
+        android:background="#ffffff"
         android:layout_alignParentLeft="true" />
 
-    <Button
+
+    <Switch
         android:id="@+id/BtSwitch"
-        android:layout_width="wrap_content"
-        android:layout_height="37dp"
-        android:layout_below="@+id/commandBot"
-        android:layout_toEndOf="@+id/PairedDevice"
-        android:text="on/off"
-        android:textSize="10sp"
-        android:layout_toRightOf="@+id/PairedDevice" />
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/line1"
+        android:paddingBottom="10dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="10dp"
+        android:text="Bluetooth"
+        android:textColor="@android:color/white"
+        android:textSize="18sp" />
+
+    <View
+        android:id="@+id/line2"
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/BtSwitch"
+        android:background="#ffffff"
+        android:layout_alignParentLeft="true" />
 
     <TextView
         android:id="@+id/PairedDevice"
         android:layout_width="wrap_content"
         android:layout_height="39dp"
+        android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_below="@+id/commandBot"
+        android:layout_below="@+id/line2"
+        android:paddingLeft="20dp"
         android:text="Available Devices(tap to connect)"
+        android:textColor="@android:color/white"
         android:textSize="15sp"
-        android:layout_alignParentLeft="true" />
+        android:textStyle="italic" />
 
     <ListView
         android:id="@+id/LvNewDevices"
         android:layout_width="match_parent"
-        android:layout_height="344dp"
+        android:layout_height="296dp"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/PairedDevice"
-        android:layout_marginTop="1dp"
         android:nestedScrollingEnabled="true"
-        android:scrollbars="vertical"></ListView>
+        android:paddingLeft="20dp"
+        android:scrollbars="vertical"
+        ></ListView>
 
 </RelativeLayout>
