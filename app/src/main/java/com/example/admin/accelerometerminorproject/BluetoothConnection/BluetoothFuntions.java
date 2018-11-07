@@ -415,12 +415,7 @@ public class BluetoothFuntions {
             if (!myBluetoothAdapter.isEnabled()) // if bluetooth is not enabled
             {
                 Intent enableBt = new Intent(myBluetoothAdapter.ACTION_REQUEST_ENABLE); //request to enable bluetooth
-                context.startActivity(enableBt);
-
-                while(!myBluetoothAdapter.isEnabled())
-                {}
-                    Log.i(TAG,"bluetooth enabled");
-                    Toast.makeText(this.context, "Bluetooth enabled", Toast.LENGTH_SHORT).show();
+                mBluetoothCallBack.getPermissionResult(enableBt);
 
                     // create intent filter to catch state change in bluetooth
                     IntentFilter BtIntent = new IntentFilter(myBluetoothAdapter.ACTION_STATE_CHANGED);
@@ -700,6 +695,7 @@ public class BluetoothFuntions {
         public void updateNewDeviceList(ArrayList<BluetoothDevice> mBtDevice);
         public void clearList();
         public void updateReceivedTextList(String string);
+        public void getPermissionResult(Intent intent);
     }
 
 }

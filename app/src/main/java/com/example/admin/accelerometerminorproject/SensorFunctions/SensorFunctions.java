@@ -21,6 +21,7 @@ public class SensorFunctions implements SensorEventListener{
     private Sensor mySensor;
     public float x,y,z; //to store readings from sensor
     public String command;
+    public int commandInt;
 
     //interface type variable to callback a function in MainActivity
     SensorCallBack sensorCallBack = null;
@@ -78,25 +79,31 @@ public class SensorFunctions implements SensorEventListener{
             if((event.values[0]<2)&&(event.values[0]>-2)) //stop, forward and backwards
             {
                 if(event.values[1]<-3)
-                {command = context.getString(R.string.forward);}
+                {command = context.getString(R.string.forward);
+                commandInt = 8;}
                 else if (event.values[1]>3)
-                {command = context.getString(R.string.backward);}
+                {command = context.getString(R.string.backward);
+                commandInt = 2;}
                 else
-                {command = context.getString(R.string.stop);}
+                {command = context.getString(R.string.stop);
+                commandInt = 5;}
             }
             else if ((event.values[1]<2)&&(event.values[1]>-2))
             {
                 if(event.values[0]<-3)
-                {command = context.getString(R.string.right);}
+                {command = context.getString(R.string.right);
+                    commandInt = 6;}
                 else if (event.values[0]>3)
-                {command = context.getString(R.string.left);}
+                {command = context.getString(R.string.left);
+                    commandInt = 4;}
                 else
-                {command = context.getString(R.string.stop);}
+                {command = context.getString(R.string.stop);
+                    commandInt = 5;}
             }
 
         }
         //to update new readings in Activity
-        sensorCallBack.updateSensorData(x,y,z,command);
+        sensorCallBack.updateSensorData(x,y,z,command,commandInt);
     }
 
     @Override
@@ -109,6 +116,6 @@ public class SensorFunctions implements SensorEventListener{
     {
         //method to pass float type variables(readings of sensor) and
         // string(orientation of phone) to other Activity
-        public void updateSensorData(float x, float y, float z, String command);
+        public void updateSensorData(float x, float y, float z, String command, int commandint);
     }
 }

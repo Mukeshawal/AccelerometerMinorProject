@@ -1,18 +1,16 @@
 package com.example.admin.accelerometerminorproject;
 
 import android.bluetooth.BluetoothDevice;
-import android.os.Build;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
-import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,23 +18,25 @@ import android.widget.Toast;
 import com.example.admin.accelerometerminorproject.BluetoothConnection.BluetoothFuntions;
 import com.example.admin.accelerometerminorproject.SensorFunctions.SensorFunctions;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Set;
-import java.util.UUID;
+import java.lang.String;
+
 
 public class MainActivity extends AppCompatActivity implements BluetoothFuntions.BluetoothCallBack,
         SensorFunctions.SensorCallBack {
 
     private static String TAG ="MYLOG";
     float xMain,yMain,zMain;
+    public int speed = 1, speedToSend, commandNumber, commandNumberDirection = 5;
     boolean btStatus;
-    String commandMain,Direction = "stop" , toSend = "s";
+    int REQUEST_CODE = 1;
+    String commandMain, toSend = "s";
 
     private TextView x_data,y_data,z_data,commandBot;
     public ListView LvNewDevices;
     public ListView LvPairedDevices;
     public Switch BtSwitch;
+    public SeekBar seekBar;
 
     public DeviceAdapter mDeviceListAdapter;
     public ArrayList<BluetoothDevice> mBtDeviceMain;
@@ -63,6 +63,9 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
         z_data = findViewById(R.id.z_data);
         commandBot=findViewById(R.id.commandBot);
         LvNewDevices=findViewById(R.id.LvNewDevices);
+
+        //assign seek bar
+        seekBar = findViewById(R.id.mYseekBar);
 
         //assign ArrayList
         mBtDeviceMain = new ArrayList<>();
@@ -97,6 +100,54 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
                 bluetoothSetup.startBtConnection();
             }
         });
+
+        // reading change in seek bar
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if(speed != progress)
+                {
+                    speed = progress;
+                    switch (speed){
+                        case 0:
+                            speedToSend = 0;
+                            Log.i(TAG, "writing 0 in SpeedToSend");
+                            break;
+                        case 1:
+                            speedToSend = 1;
+                            Log.i(TAG, "writing 1 in SpeedToSend");
+                            break;
+                        case 2:
+                            speedToSend = 2;
+                            Log.i(TAG, "writing 2 in SpeedToSend");
+                            break;
+                        case 3:
+                            speedToSend = 3;
+                            Log.i(TAG, "writing 3 in SpeedToSend");
+                            break;
+                        case 4:
+                            speedToSend = 4;
+                            Log.i(TAG, "writing 4 in SpeedToSend");
+                            break;
+                        case 5:
+                            speedToSend = 5;
+                            Log.i(TAG, "writing 5 in SpeedToSend");
+                            break;
+                    }
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
     }
 
     @Override
@@ -113,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
         sensorFunctions.SensorRegister();
         updateSwitchStatus();
         Log.i(TAG,"switch status update OnResume");
+        bluetoothSetup.DiscoverDevices();
     }
 
     @Override
@@ -163,37 +215,59 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
             Log.i(TAG,"updated received message");
     }
 
+    @Override
+    public void getPermissionResult(Intent intent) {
+        startActivityForResult(intent,REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Check which request we're responding to
+        if (requestCode == REQUEST_CODE) {
+            // Make sure the request was successful
+            if (resultCode == RESULT_OK) {
+                Log.i(TAG,"permission approved");
+                Toast.makeText(this, "Bluetooth enabled", Toast.LENGTH_SHORT).show();
+
+            }
+            else{
+                Toast.makeText(this,"permission denied!!",Toast.LENGTH_SHORT).show();
+                Log.i(TAG,"permission denied");
+            }
+        }
+    }
+
     //override method of interface SensorCallBack to update new Sensor readings
     @Override
-    public void updateSensorData(float x, float y, float z, String command) {
+    public void updateSensorData(float x, float y, float z, String command, int commandint) {
         //copy received sensor readings to float type variables and orientation in string
-        xMain = x;        yMain = y;        zMain = z;        commandMain = command;
+        xMain = x;        yMain = y;        zMain = z;        commandMain = command; commandNumber=commandint;
 
         //update textFields on screen
         x_data.setText(getString(R.string.x)+ xMain);
         y_data.setText(getString(R.string.y)+ yMain);
         z_data.setText(getString(R.string.z)+ zMain);
         commandBot.setText(commandMain);
-        if (!Direction.equals(commandMain)) {
-            Direction = commandMain;
+        if (commandNumber!=commandNumberDirection) {
+            commandNumberDirection = commandNumber;
             Log.i(TAG,"direction changed");
-            if (commandMain.equals("Moving forward")) {
+            if (commandNumber == 8) {
                 toSend = "f";
                 Log.i(TAG, "writing f in toSend");
             }
-            if (commandMain.equals("Turning Right")) {
+            if (commandNumber == 6) {
                 toSend = "r";
                 Log.i(TAG, "writing r in toSend");
             }
-            if (commandMain.equals("Turning left")) {
+            if (commandNumber == 4) {
                 toSend = "l";
                 Log.i(TAG, "writing l in toSend");
             }
-            if (commandMain.equals("Moving backward")) {
+            if (commandNumber == 2) {
                 toSend = "b";
                 Log.i(TAG, "writing b in toSend");
             }
-            if (commandMain.equals("stop")) {
+            if (commandNumber == 5) {
                 toSend = "s";
                 Log.i(TAG, "writing s in toSend");
             }
@@ -202,6 +276,7 @@ public class MainActivity extends AppCompatActivity implements BluetoothFuntions
             bluetoothSetup.write(bytes);
         }
     }
+
 
    public void updateSwitchStatus()
    {
